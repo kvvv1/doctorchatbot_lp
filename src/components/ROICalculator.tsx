@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calculator, TrendingUp } from 'lucide-react';
+import { waLink } from '../utils/whatsapp';
 
 const ROICalculator = () => {
   const [consultasMonth, setConsultasMonth] = useState(200);
@@ -161,9 +162,7 @@ const ROICalculator = () => {
               Impressionado com o potencial? Vamos implementar na sua clínica:
             </p>
             <a
-              href={`https://wa.me/5531995531183?text=${encodeURIComponent(
-                `Olá! Vi o calculador de ROI e o potencial de economia é de ${formatCurrency(resultado.valorRecuperado)}/mês (${resultado.consultasRecuperadas} consultas recuperadas). Quero saber mais sobre o DoctorChatBot.\n\n— origem: calculadora_roi`
-              )}`}
+              href={waLink(`calculadora_roi_${resultado.consultasRecuperadas}consultas_${formatCurrency(resultado.valorRecuperado)}`)}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
