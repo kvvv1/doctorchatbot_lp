@@ -1,27 +1,8 @@
 import React from 'react';
-import { Check, Star, Zap } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import { waLink } from '../utils/whatsapp';
 
 const Plans = () => {
-  const founderPlan = {
-    name: 'Plano Fundador',
-    price: 297,
-    originalPrice: 397,
-    description: 'Acesso antecipado com preço garantido para sempre',
-    badge: '🚀 Vagas Limitadas',
-    isFounder: true,
-    features: [
-      'Tudo do Essencial incluído',
-      'Preço garantido para sempre',
-      'Early access a novas funcionalidades',
-      'Suporte prioritário vitalício',
-      'Badge de fundador exclusivo',
-      'Sem aumento de preço futuro',
-    ],
-    ctaText: 'Garantir Plano Fundador',
-    ctaLink: waLink('plan_fundador'),
-  };
-
   const mainPlans = [
     {
       name: 'Essencial',
@@ -30,7 +11,7 @@ const Plans = () => {
       popular: false,
       color: 'blue',
       features: [
-        'Chatbot inteligente no WhatsApp',
+        'Chatbot interativo no WhatsApp (menus + botões)',
         'Agendamento automatizado 24h',
         'Respostas rápidas personalizadas',
         'Dashboard de conversas',
@@ -114,51 +95,6 @@ const Plans = () => {
           </div>
         </div>
 
-        {/* Plano Fundador — Destaque */}
-        <div className="mb-10 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-400 rounded-2xl p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-100 rounded-full opacity-20 -mr-36 -mt-36" />
-          <div className="relative">
-            <div className="flex flex-col lg:flex-row lg:items-center gap-8">
-              <div className="flex-1">
-                <div className="inline-flex items-center gap-2 bg-emerald-500 text-white px-4 py-1.5 rounded-full text-sm font-bold mb-4">
-                  <Zap size={14} />
-                  {founderPlan.badge}
-                </div>
-                <h3 className="text-3xl font-bold text-slate-900 mb-2">{founderPlan.name}</h3>
-                <p className="text-slate-600 mb-4">{founderPlan.description}</p>
-                <div className="flex items-baseline gap-3 mb-2">
-                  <span className="text-base text-slate-500 line-through">R$ {founderPlan.originalPrice}</span>
-                  <span className="text-5xl font-bold text-emerald-700">R$ {founderPlan.price}</span>
-                  <span className="text-slate-600">/mês</span>
-                </div>
-                <p className="text-sm font-semibold text-emerald-700 mb-6">
-                  ⚡ Preço garantido para sempre · Sem aumento futuro
-                </p>
-                <a
-                  href={founderPlan.ctaLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-base transition-colors shadow-lg shadow-emerald-100"
-                >
-                  {founderPlan.ctaText}
-                </a>
-                <p className="text-xs text-slate-500 mt-3">Oferta por tempo limitado · Apenas para os primeiros clientes</p>
-              </div>
-              <div className="lg:w-64">
-                <ul className="space-y-2.5">
-                  {founderPlan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <Check size={18} className="text-emerald-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-slate-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Planos principais */}
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           {mainPlans.map((plan, index) => {
             const colors = colorMap[plan.color];
@@ -213,14 +149,13 @@ const Plans = () => {
           })}
         </div>
 
-        {/* Info extra */}
         <div className="grid md:grid-cols-2 gap-6 mt-4">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
             <h3 className="font-semibold text-slate-900 mb-4">
               ✅ Incluído em todos os planos:
             </h3>
             <ul className="space-y-2 text-slate-600 text-sm">
-              <li>• Chatbot WhatsApp com automação completa</li>
+              <li>• Chatbot WhatsApp com menus e botões interativos</li>
               <li>• Painel de aprovação de agendamentos</li>
               <li>• Sistema de lembretes automáticos</li>
               <li>• Relatórios de performance mensais</li>

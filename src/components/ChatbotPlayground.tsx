@@ -1,17 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle, RotateCcw, Send, Phone, Video, MoreVertical } from 'lucide-react';
+import { MessageCircle, RotateCcw, Phone, Video, MoreVertical, List } from 'lucide-react';
 import { waLink } from '../utils/whatsapp';
 
-interface Message {
-  id: string;
-  text: string;
-  isBot: boolean;
-  timestamp: Date;
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ChatStep =
   | 'menu'
-  | 'agendar_nome'
   | 'agendar_dia'
   | 'agendar_hora'
   | 'reagendar_dia'
@@ -20,502 +14,627 @@ type ChatStep =
   | 'cancelar_encaixe'
   | 'atendente'
   | 'ver_agendamentos'
-  | 'confirmar_presenca'
   | 'final';
 
 interface ChatState {
   step: ChatStep;
-  name?: string;
   day?: string;
   time?: string;
 }
 
-const MENU_TEXT = `Olá! 👋 Sou o assistente virtual da *Clínica Demo*.
+interface TextMessage {
+  kind: 'text';
+  id: string;
+  text: string;
+  isBot: boolean;
+  timestamp: Date;
+}
 
-Como posso te ajudar hoje?
+interface ButtonMessage {
+  kind: 'buttons';
+  id: string;
+  text: string;
+  buttons: { id: string; label: string }[];
+  isBot: true;
+  timestamp: Date;
+  usedButtonId?: string;
+}
 
-1️⃣ Agendar uma consulta
-2️⃣ Remarcar consulta
-3️⃣ Cancelar consulta
-4️⃣ Falar com atendente
-5️⃣ Ver meus agendamentos
+interface ListMessage {
+  kind: 'list';
+  id: string;
+  text: string;
+  buttonLabel: string;
+  sections: { title: string; rows: { id: string; title: string; description?: string }[] }[];
+  isBot: true;
+  timestamp: Date;
+  selectedRowId?: string;
+}
 
-Digite o número da opção ou descreva o que precisa. 😊`;
+type Message = TextMessage | ButtonMessage | ListMessage;
+
+// ─── Conteúdo estático ────────────────────────────────────────────────────────
+
+const DEMO_NAME = 'João Silva';
 
 const DEMO_APPOINTMENTS = [
-  { date: '25/03/2025', time: '14:00', status: 'Aguardando confirmação ⏳' },
-  { date: '10/04/2025', time: '09:30', status: 'Confirmada ✅' },
+  { date: '25/03', time: '14:00', status: 'Aguardando confirmação' },
+  { date: '10/04', time: '09:30', status: 'Confirmada ✅' },
 ];
 
-const ChatbotPlayground = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [chatState, setChatState] = useState<ChatState>({ step: 'menu' });
-  const [isTyping, setIsTyping] = useState(false);
-  const [inputValue, setInputValue] = useState('');
+const MAIN_MENU_CONTENT = {
+  kind: 'list' as const,
+  text: `Olá, *${DEMO_NAME}*! 👋\n\nSou o assistente virtual da *Clínica Demo*.\n\nComo posso te ajudar hoje?`,
+  buttonLabel: 'Ver opções',
+  isBot: true as const,
+  sections: [
+    {
+      title: 'Agendamento',
+      rows: [
+        { id: 'schedule',     title: '📅 Agendar consulta',    description: 'Marcar uma nova consulta' },
+        { id: 'reschedule',   title: '🔄 Remarcar consulta',   description: 'Mudar data ou horário' },
+        { id: 'cancel',       title: '❌ Cancelar consulta',   description: 'Cancelar um agendamento' },
+      ],
+    },
+    {
+      title: 'Atendimento',
+      rows: [
+        { id: 'attendant',    title: '👨‍⚕️ Falar com atendente', description: 'Conectar com nossa equipe' },
+        { id: 'appointments', title: '📋 Meus agendamentos',   description: 'Ver suas próximas consultas' },
+      ],
+    },
+  ],
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const newId = () => `${Date.now()}-${Math.random()}`;
+const now   = () => new Date();
+const fmt   = (d: Date) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+function bold(text: string) {
+  return text.split(/(\*[^*]+\*)/g).map((p, i) =>
+    p.startsWith('*') && p.endsWith('*')
+      ? <strong key={i}>{p.slice(1, -1)}</strong>
+      : <span key={i}>{p}</span>
+  );
+}
+
+function makeList(partial: Omit<ListMessage, 'id' | 'timestamp'>): ListMessage {
+  return { ...partial, id: newId(), timestamp: now() };
+}
+function makeButtons(partial: Omit<ButtonMessage, 'id' | 'timestamp'>): ButtonMessage {
+  return { ...partial, id: newId(), timestamp: now() };
+}
+function makeText(text: string, isBot = true): TextMessage {
+  return { kind: 'text', id: newId(), text, isBot, timestamp: now() };
+}
+
+// ─── Bubble components ────────────────────────────────────────────────────────
+
+function TextBubble({ msg }: { msg: TextMessage }) {
+  return (
+    <div className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'} mb-1`}>
+      <div className={`max-w-[82%] px-3 py-2 rounded-lg shadow-sm text-[13px] leading-relaxed ${
+        msg.isBot ? 'bg-white text-gray-800 rounded-tl-none' : 'bg-[#dcf8c6] text-gray-800 rounded-tr-none'
+      }`}>
+        <p className="whitespace-pre-line">{bold(msg.text)}</p>
+        <div className={`flex items-center gap-1 mt-0.5 ${msg.isBot ? '' : 'justify-end'}`}>
+          <span className="text-[10px] text-gray-400">{fmt(msg.timestamp)}</span>
+          {!msg.isBot && <span className="text-[10px] text-blue-500">✓✓</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ButtonsBubble({ msg, onPick, disabled }: {
+  msg: ButtonMessage;
+  onPick: (btnId: string, label: string, msgId: string) => void;
+  disabled: boolean;
+}) {
+  const used = !!msg.usedButtonId;
+  return (
+    <div className="flex justify-start mb-1">
+      <div className="max-w-[82%] w-full">
+        <div className="bg-white rounded-lg rounded-tl-none shadow-sm px-3 py-2 text-[13px] leading-relaxed text-gray-800 mb-0.5">
+          <p className="whitespace-pre-line">{bold(msg.text)}</p>
+          <span className="text-[10px] text-gray-400">{fmt(msg.timestamp)}</span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          {msg.buttons.map((btn) => (
+            <button
+              key={btn.id}
+              type="button"
+              disabled={used || disabled}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!used && !disabled) onPick(btn.id, btn.label, msg.id); }}
+              className={`w-full bg-white border rounded-lg py-2 text-[13px] font-medium transition-all shadow-sm ${
+                msg.usedButtonId === btn.id
+                  ? 'border-[#25D366] text-[#075E54] bg-green-50'
+                  : used || disabled
+                  ? 'border-gray-200 text-gray-400 cursor-default'
+                  : 'border-[#53bdeb] text-[#0277bd] hover:bg-blue-50 active:bg-blue-100 cursor-pointer'
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ListBubble({ msg, onPick, disabled }: {
+  msg: ListMessage;
+  onPick: (rowId: string, title: string, msgId: string) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const used = !!msg.selectedRowId;
+  const selectedTitle = msg.sections.flatMap(s => s.rows).find(r => r.id === msg.selectedRowId)?.title;
+
+  return (
+    <div className="flex justify-start mb-1">
+      <div className="max-w-[82%] w-full">
+        <div className="bg-white rounded-lg rounded-tl-none shadow-sm px-3 py-2 text-[13px] leading-relaxed text-gray-800 mb-0.5">
+          <p className="whitespace-pre-line">{bold(msg.text)}</p>
+          <span className="text-[10px] text-gray-400">{fmt(msg.timestamp)}</span>
+        </div>
+
+        {used ? (
+          <div className="w-full bg-green-50 border border-[#25D366] rounded-lg py-2 text-[13px] font-medium text-[#075E54] flex items-center justify-center gap-1.5 shadow-sm">
+            ✓ {selectedTitle}
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!disabled) setOpen(true); }}
+            className={`w-full bg-white border border-[#53bdeb] rounded-lg py-2 text-[13px] font-medium text-[#0277bd] flex items-center justify-center gap-1.5 transition-colors shadow-sm ${
+              disabled ? 'opacity-50 cursor-default' : 'hover:bg-blue-50 cursor-pointer'
+            }`}
+          >
+            <List size={14} />
+            {msg.buttonLabel}
+          </button>
+        )}
+
+        {/* Bottom sheet */}
+        {open && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setOpen(false)}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div
+              className="relative bg-white w-full max-w-sm rounded-t-2xl shadow-xl z-10 max-h-[70vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <span className="text-sm font-semibold text-gray-700">Selecione uma opção</span>
+                <button type="button" onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+              </div>
+              {msg.sections.map((section) => (
+                <div key={section.title}>
+                  <p className="px-4 pt-3 pb-1 text-[11px] font-bold text-[#25D366] uppercase tracking-wide">
+                    {section.title}
+                  </p>
+                  {section.rows.map((row) => (
+                    <button
+                      key={row.id}
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); onPick(row.id, row.title, msg.id); }}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-50 last:border-0"
+                    >
+                      <p className="text-[13px] font-medium text-gray-800">{row.title}</p>
+                      {row.description && <p className="text-[11px] text-gray-400 mt-0.5">{row.description}</p>}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function ChatbotPlayground() {
+  const [messages, setMessages]   = useState<Message[]>([]);
+  const [state, setState]         = useState<ChatState>({ step: 'menu' });
+  const [isTyping, setIsTyping]   = useState(false);
   const [isDisabled, setIsDisabled] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
-
-  const addBotMessage = useCallback((text: string, delay = 900) => {
+  // ── Adicionar mensagem bot com delay ──
+  const addBot = useCallback((msg: Omit<Message, 'id' | 'timestamp'>): Promise<void> => {
     setIsTyping(true);
     setIsDisabled(true);
-    return new Promise<void>((resolve) => {
+    return new Promise(resolve => {
       setTimeout(() => {
-        setMessages(prev => [
-          ...prev,
-          { id: `${Date.now()}-${Math.random()}`, text, isBot: true, timestamp: new Date() },
-        ]);
+        setMessages(prev => [...prev, { ...msg, id: newId(), timestamp: now() } as Message]);
         setIsTyping(false);
         setIsDisabled(false);
         resolve();
-      }, delay);
+      }, 800);
     });
   }, []);
 
-  const addUserMessage = useCallback((text: string) => {
-    setMessages(prev => [
-      ...prev,
-      { id: `${Date.now()}-${Math.random()}`, text, isBot: false, timestamp: new Date() },
-    ]);
+  // ── Adicionar resposta do usuário ──
+  const addUser = useCallback((label: string) => {
+    // Remove leading emoji prefix para exibição
+    const clean = label.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]+\s*/u, '');
+    setMessages(prev => [...prev, makeText(clean, false)]);
   }, []);
 
-  // Inicializa o chat
-  useEffect(() => {
-    addBotMessage(MENU_TEXT, 600);
-  }, []);
-
-  const handleInput = (text: string, stateOverride?: Partial<ChatState>) => {
-    if (isDisabled || !text.trim()) return;
-    addUserMessage(text.trim());
-    setInputValue('');
-    processMessage(text.trim(), stateOverride);
+  // ── Marcar usado ──
+  const markUsed = (msgId: string, selectedId: string) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m;
+      if (m.kind === 'buttons') return { ...m, usedButtonId: selectedId };
+      if (m.kind === 'list')   return { ...m, selectedRowId: selectedId };
+      return m;
+    }));
   };
 
-  const processMessage = async (text: string, stateOverride?: Partial<ChatState>) => {
-    const currentStep = stateOverride?.step ?? chatState.step;
-    const currentState = { ...chatState, ...stateOverride };
+  // ── Voltar ao menu ──
+  const backToMenu = async (text = 'Posso ajudar em mais alguma coisa? 😊') => {
+    setState({ step: 'menu' });
+    await addBot({ ...MAIN_MENU_CONTENT, text });
+  };
 
-    setIsDisabled(true);
+  // ── Init ──
+  useEffect(() => {
+    setTimeout(() => {
+      setMessages([makeList(MAIN_MENU_CONTENT)]);
+    }, 400);
+  }, []);
 
-    switch (currentStep) {
-      case 'menu': {
-        const n = text.toLowerCase();
-        if (n === '1' || n.includes('agendar') || n.includes('marcar')) {
-          setChatState({ step: 'agendar_nome' });
-          await addBotMessage('Ótimo! Vou agendar sua consulta. 😊\n\nPor favor, me informe seu *nome completo*:');
-        } else if (n === '2' || n.includes('remarcar') || n.includes('reagendar')) {
-          setChatState({ step: 'reagendar_dia' });
-          await addBotMessage('Entendido! Vou remarcar sua consulta.\n\nQual o *novo dia* desejado?\n(ex: 28/03 ou quinta-feira)');
-        } else if (n === '3' || n.includes('cancelar') || n.includes('desmarcar')) {
-          setChatState({ step: 'cancelar_confirmar' });
-          await addBotMessage('Você deseja *cancelar* sua consulta?\n\nDigite *SIM* para confirmar ou *NÃO* para voltar ao menu.');
-        } else if (n === '4' || n.includes('atendente') || n.includes('humano') || n.includes('pessoa')) {
-          setChatState({ step: 'atendente' });
-          await addBotMessage('Certo! Vou transferir você para um de nossos *atendentes*. 👨‍⚕️\n\n⏳ Aguarde um momento, alguém da nossa equipe entrará em contato em breve.\n\nHorário de atendimento: *Segunda a Sexta, 8h às 18h*');
-          setTimeout(async () => {
-            await addBotMessage('✅ *Atendente conectado!*\n\n_Esta é uma simulação. No sistema real, um humano assumiria a conversa agora e o bot seria desativado automaticamente._ 💬', 1200);
-          }, 500);
-        } else if (n === '5' || n.includes('ver') || n.includes('minha consulta') || n.includes('agendamento')) {
-          setChatState({ step: 'ver_agendamentos' });
-          await addBotMessage('🔍 Buscando seus agendamentos...');
-          setTimeout(async () => {
-            const lines = DEMO_APPOINTMENTS.map(
-              (a, i) => `${i + 1}. 📅 ${a.date} às ${a.time} — ${a.status}`
-            ).join('\n');
-            await addBotMessage(`Seus próximos agendamentos: 📋\n\n${lines}\n\nPrecisa remarcar ou cancelar?\n1️⃣ Remarcar   2️⃣ Cancelar   3️⃣ Menu principal`, 1000);
-          }, 300);
-        } else {
-          await addBotMessage('Desculpe, não entendi. Por favor, escolha uma das opções:\n\n1️⃣ Agendar consulta\n2️⃣ Remarcar consulta\n3️⃣ Cancelar consulta\n4️⃣ Falar com atendente\n5️⃣ Ver meus agendamentos');
-        }
-        break;
-      }
+  // ── Handler: lista principal ──
+  const onListPick = async (rowId: string, title: string, msgId: string) => {
+    markUsed(msgId, rowId);
+    addUser(title);
 
-      case 'agendar_nome': {
-        const name = text.trim();
-        setChatState(prev => ({ ...prev, step: 'agendar_dia', name }));
-        await addBotMessage(`Obrigado, *${name}*! 👍\n\nQual dia você prefere para a consulta?\nPode digitar a data (ex: 25/03) ou o dia da semana (ex: segunda-feira).`);
-        break;
-      }
+    // Agendamento selecionado da lista
+    if (rowId.startsWith('appt_')) {
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: `O que deseja fazer com a consulta *${title.replace('📅 ', '')}*?`,
+        buttons: [
+          { id: 'from_list_reschedule', label: '🔄 Remarcar' },
+          { id: 'from_list_cancel',     label: '❌ Cancelar' },
+        ],
+      }));
+      return;
+    }
 
-      case 'agendar_dia': {
-        const day = text.trim();
-        setChatState(prev => ({ ...prev, step: 'agendar_hora', day }));
-        await addBotMessage(`Perfeito! Anotei o dia *${day}*.\n\nQual horário você prefere?\n(ex: 14h ou 14:30)`);
-        break;
-      }
+    if (rowId === 'schedule') {
+      setState({ step: 'agendar_dia' });
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: `Ótimo! Vou agendar no nome de *${DEMO_NAME}*.\n\nQual dia você prefere para a consulta?`,
+        buttons: [
+          { id: 'day_hoje',   label: '📅 Hoje' },
+          { id: 'day_amanha', label: '📅 Amanhã' },
+          { id: 'day_terca',  label: '📅 Próxima terça' },
+          { id: 'day_quarta', label: '📅 Próxima quarta' },
+        ],
+      }));
 
-      case 'agendar_hora': {
-        const time = text.trim();
-        const name = currentState.name || 'Paciente';
-        const day = currentState.day || 'a definir';
-        setChatState(prev => ({ ...prev, step: 'final', time }));
-        await addBotMessage(`✅ *Consulta agendada com sucesso!*\n\n📋 Paciente: ${name}\n📅 Data: ${day}\n🕐 Horário: ${time}\n\nSua solicitação foi enviada como *pendente* para o painel da clínica.\nNossa equipe irá confirmar em breve. 🏥`);
-        setTimeout(async () => {
-          await addBotMessage('Posso ajudar em mais alguma coisa?\n\n1️⃣ Voltar ao menu principal', 1000);
-          setChatState({ step: 'final' });
-        }, 300);
-        break;
-      }
+    } else if (rowId === 'reschedule') {
+      setState({ step: 'reagendar_dia' });
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: 'Vamos remarcar. Qual o *novo dia* desejado?',
+        buttons: [
+          { id: 'r_amanha',  label: '📅 Amanhã' },
+          { id: 'r_semana',  label: '📅 Essa semana' },
+          { id: 'r_proxima', label: '📅 Próxima semana' },
+        ],
+      }));
 
-      case 'reagendar_dia': {
-        const day = text.trim();
-        setChatState(prev => ({ ...prev, step: 'reagendar_hora', day }));
-        await addBotMessage(`Novo dia anotado: *${day}*\n\nQual o *novo horário*?\n(ex: 15h ou 15:30)`);
-        break;
-      }
+    } else if (rowId === 'cancel') {
+      setState({ step: 'cancelar_confirmar' });
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: 'Você deseja *cancelar* sua consulta?\n\nEsta ação não pode ser desfeita.',
+        buttons: [
+          { id: 'cancel_yes', label: '✅ Sim, cancelar' },
+          { id: 'cancel_no',  label: '❌ Não, manter' },
+        ],
+      }));
 
-      case 'reagendar_hora': {
-        const time = text.trim();
-        const day = currentState.day || 'a definir';
-        setChatState({ step: 'final' });
-        await addBotMessage(`✅ *Consulta remarcada com sucesso!*\n\n📅 Novo dia: ${day}\n🕐 Novo horário: ${time}\n\nEm breve nossa equipe confirmará a alteração. Obrigado! 😊`);
-        setTimeout(async () => {
-          await addBotMessage('Posso ajudar em mais alguma coisa?\n\n1️⃣ Voltar ao menu principal', 1000);
-        }, 300);
-        break;
-      }
+    } else if (rowId === 'attendant') {
+      setState({ step: 'atendente' });
+      await addBot(makeText('Certo! Vou transferir você para um *atendente*. 👨‍⚕️\n\n⏳ Aguarde um momento...\n\nHorário: *Seg–Sex, 8h às 18h*'));
+      setTimeout(async () => {
+        await addBot(makeText('✅ *Atendente conectado!*\n\nNo sistema real, o bot é desativado aqui e um humano assume a conversa pelo *dashboard*. 💬'));
+        setTimeout(() => backToMenu(), 2500);
+      }, 500);
 
-      case 'cancelar_confirmar': {
-        const n = text.toLowerCase();
-        const yes = n === 'sim' || n === 's' || n.includes('confirmo') || n.includes('ok');
-        const no = n === 'não' || n === 'nao' || n === 'n';
-        if (yes) {
-          setChatState({ step: 'cancelar_encaixe' });
-          await addBotMessage('Consulta cancelada. ✅\n\nGostaria de entrar na *lista de espera* caso surja um horário mais cedo?\n\nDigite *SIM* ou *NÃO*');
-        } else if (no) {
-          setChatState({ step: 'menu' });
-          await addBotMessage('Ok! Sua consulta está *mantida*. 👍\n\nPosso ajudar em algo mais?');
-        } else {
-          await addBotMessage('Não entendi. Por favor, digite *SIM* para cancelar ou *NÃO* para manter sua consulta.');
-        }
-        break;
-      }
-
-      case 'cancelar_encaixe': {
-        const n = text.toLowerCase();
-        const yes = n === 'sim' || n === 's' || n.includes('ok');
-        const no = n === 'não' || n === 'nao' || n === 'n';
-        if (yes) {
-          setChatState({ step: 'final' });
-          await addBotMessage('✅ Consulta cancelada com sucesso.\n\nVocê foi adicionado à *lista de espera*. Avisaremos assim que surgir um horário disponível! 📲');
-        } else if (no) {
-          setChatState({ step: 'final' });
-          await addBotMessage('✅ Consulta cancelada.\n\nSe precisar agendar novamente no futuro, é só chamar! Obrigado. 😊');
-        } else {
-          await addBotMessage('Por favor, digite *SIM* ou *NÃO*');
-        }
-        break;
-      }
-
-      case 'ver_agendamentos': {
-        const n = text.toLowerCase();
-        if (n === '1' || n.includes('remarcar')) {
-          setChatState({ step: 'reagendar_dia' });
-          await addBotMessage('Entendido! Qual o *novo dia* desejado?\n(ex: 28/03 ou quinta-feira)');
-        } else if (n === '2' || n.includes('cancelar')) {
-          setChatState({ step: 'cancelar_confirmar' });
-          await addBotMessage('Você deseja *cancelar* sua consulta?\n\nDigite *SIM* para confirmar ou *NÃO* para voltar ao menu.');
-        } else {
-          setChatState({ step: 'menu' });
-          await addBotMessage(MENU_TEXT);
-        }
-        break;
-      }
-
-      case 'atendente':
-      case 'confirmar_presenca':
-      case 'final': {
-        // Qualquer mensagem volta ao menu
-        setChatState({ step: 'menu' });
-        await addBotMessage(MENU_TEXT);
-        break;
-      }
+    } else if (rowId === 'appointments') {
+      setState({ step: 'ver_agendamentos' });
+      setIsTyping(true); setIsDisabled(true);
+      setTimeout(async () => {
+        setIsTyping(false); setIsDisabled(false);
+        await addBot(makeList({
+          kind: 'list', isBot: true,
+          text: 'Seus próximos agendamentos: 📋\n\nSelecione um agendamento para ver as opções:',
+          buttonLabel: 'Ver agendamentos',
+          sections: [
+            {
+              title: 'Agendamentos',
+              rows: DEMO_APPOINTMENTS.map((a, i) => ({
+                id: `appt_${i}`,
+                title: `📅 ${a.date} às ${a.time}`,
+                description: a.status,
+              })),
+            },
+          ],
+        }));
+      }, 900);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleInput(inputValue);
+  // ── Handler: botões ──
+  const onButtonPick = async (btnId: string, label: string, msgId: string) => {
+    markUsed(msgId, btnId);
+    addUser(label);
+
+    // Dias agendar
+    const dayMapSchedule: Record<string, string> = {
+      day_hoje: 'Hoje', day_amanha: 'Amanhã', day_terca: 'Próxima terça', day_quarta: 'Próxima quarta',
+    };
+    if (dayMapSchedule[btnId]) {
+      setState(prev => ({ ...prev, step: 'agendar_hora', day: dayMapSchedule[btnId] }));
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: `*${dayMapSchedule[btnId]}* anotado. Qual horário você prefere?`,
+        buttons: [
+          { id: 'bh_09', label: '🕘 09:00' },
+          { id: 'bh_14', label: '🕑 14:00' },
+          { id: 'bh_17', label: '🕔 17:00' },
+        ],
+      }));
+      return;
+    }
+
+    // Horários agendar
+    const timeMapSchedule: Record<string, string> = { bh_09: '09:00', bh_14: '14:00', bh_17: '17:00' };
+    if (timeMapSchedule[btnId]) {
+      const day = state.day || 'Amanhã';
+      setState(prev => ({ ...prev, step: 'final' }));
+      await addBot(makeText(`✅ *Consulta confirmada!*\n\n👤 Paciente: ${DEMO_NAME}\n📅 Data: ${day}\n🕐 Horário: ${timeMapSchedule[btnId]}\n\nVocê receberá lembretes *24h* e *12h* antes da consulta pelo WhatsApp. 🔔`));
+      setTimeout(() => backToMenu(), 3000);
+      return;
+    }
+
+    // Dias remarcar
+    const dayMapReschedule: Record<string, string> = { r_amanha: 'Amanhã', r_semana: 'Essa semana', r_proxima: 'Próxima semana' };
+    if (dayMapReschedule[btnId]) {
+      setState(prev => ({ ...prev, step: 'reagendar_hora', day: dayMapReschedule[btnId] }));
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: `*${dayMapReschedule[btnId]}* anotado. Qual o novo horário?`,
+        buttons: [
+          { id: 'rh_09', label: '🕘 09:00' },
+          { id: 'rh_14', label: '🕑 14:00' },
+          { id: 'rh_17', label: '🕔 17:00' },
+        ],
+      }));
+      return;
+    }
+
+    // Horários remarcar
+    const timeMapReschedule: Record<string, string> = { rh_09: '09:00', rh_14: '14:00', rh_17: '17:00' };
+    if (timeMapReschedule[btnId]) {
+      const day = state.day || 'Amanhã';
+      setState({ step: 'final' });
+      await addBot(makeText(`✅ *Consulta remarcada!*\n\n📅 Novo dia: ${day}\n🕐 Novo horário: ${timeMapReschedule[btnId]}\n\nVocê receberá lembretes *24h* e *12h* antes da consulta pelo WhatsApp. 🔔`));
+      setTimeout(() => backToMenu(), 2500);
+      return;
+    }
+
+    // Cancelar — confirmação
+    if (btnId === 'cancel_yes') {
+      setState({ step: 'cancelar_encaixe' });
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: 'Consulta cancelada. ✅\n\nGostaria de entrar na *lista de espera* caso surja um horário mais cedo?',
+        buttons: [
+          { id: 'wl_yes', label: '✅ Sim, quero entrar' },
+          { id: 'wl_no',  label: '❌ Não, obrigado' },
+        ],
+      }));
+      return;
+    }
+    if (btnId === 'cancel_no') {
+      setState({ step: 'menu' });
+      await addBot(makeText('Ok! Sua consulta está *mantida*. 👍'));
+      setTimeout(() => backToMenu(), 1500);
+      return;
+    }
+
+    // Lista de espera
+    if (btnId === 'wl_yes') {
+      setState({ step: 'final' });
+      await addBot(makeText('✅ Você foi adicionado à *lista de espera*.\n\nAvisaremos assim que surgir um horário disponível! 📲'));
+      setTimeout(() => backToMenu(), 2500);
+      return;
+    }
+    if (btnId === 'wl_no') {
+      setState({ step: 'final' });
+      await addBot(makeText('✅ Consulta cancelada.\n\nSe precisar agendar novamente, é só chamar! 😊'));
+      setTimeout(() => backToMenu(), 2500);
+      return;
+    }
+
+    // Da lista de agendamentos
+    if (btnId === 'from_list_reschedule') {
+      setState({ step: 'reagendar_dia' });
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: 'Qual o *novo dia* desejado?',
+        buttons: [
+          { id: 'r_amanha',  label: '📅 Amanhã' },
+          { id: 'r_semana',  label: '📅 Essa semana' },
+          { id: 'r_proxima', label: '📅 Próxima semana' },
+        ],
+      }));
+      return;
+    }
+    if (btnId === 'from_list_cancel') {
+      setState({ step: 'cancelar_confirmar' });
+      await addBot(makeButtons({
+        kind: 'buttons', isBot: true,
+        text: 'Você deseja *cancelar* sua consulta?',
+        buttons: [
+          { id: 'cancel_yes', label: '✅ Sim, cancelar' },
+          { id: 'cancel_no',  label: '❌ Não, manter' },
+        ],
+      }));
+      return;
+    }
   };
 
-  const resetSimulation = () => {
+  const reset = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setMessages([]);
-    setChatState({ step: 'menu' });
+    setState({ step: 'menu' });
     setIsTyping(false);
     setIsDisabled(false);
-    setInputValue('');
-    setTimeout(() => addBotMessage(MENU_TEXT, 400), 100);
+    setTimeout(() => setMessages([makeList(MAIN_MENU_CONTENT)]), 300);
   };
-
-  const getQuickReplies = (): { label: string; value: string }[] => {
-    switch (chatState.step) {
-      case 'menu':
-        return [
-          { label: '1️⃣ Agendar consulta', value: '1' },
-          { label: '2️⃣ Remarcar', value: '2' },
-          { label: '3️⃣ Cancelar', value: '3' },
-          { label: '4️⃣ Atendente', value: '4' },
-          { label: '5️⃣ Meus agendamentos', value: '5' },
-        ];
-      case 'agendar_dia':
-        return [
-          { label: 'Hoje', value: 'Hoje' },
-          { label: 'Amanhã', value: 'Amanhã' },
-          { label: 'Próxima segunda', value: 'Próxima segunda' },
-          { label: 'Próxima terça', value: 'Próxima terça' },
-        ];
-      case 'agendar_hora':
-      case 'reagendar_hora':
-        return [
-          { label: '09:00', value: '09:00' },
-          { label: '11:00', value: '11:00' },
-          { label: '14:00', value: '14:00' },
-          { label: '16:30', value: '16:30' },
-        ];
-      case 'cancelar_confirmar':
-      case 'cancelar_encaixe':
-      case 'confirmar_presenca':
-        return [
-          { label: '✅ Sim', value: 'Sim' },
-          { label: '❌ Não', value: 'Não' },
-        ];
-      case 'reagendar_dia':
-        return [
-          { label: 'Amanhã', value: 'Amanhã' },
-          { label: 'Próxima quarta', value: 'Próxima quarta' },
-          { label: 'Próxima sexta', value: 'Próxima sexta' },
-        ];
-      case 'ver_agendamentos':
-        return [
-          { label: '1️⃣ Remarcar', value: '1' },
-          { label: '2️⃣ Cancelar', value: '2' },
-          { label: '3️⃣ Menu', value: '3' },
-        ];
-      case 'atendente':
-      case 'final':
-        return [{ label: '↩️ Voltar ao menu', value: 'menu' }];
-      default:
-        return [];
-    }
-  };
-
-  const formatTime = (date: Date) =>
-    date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-  const renderText = (text: string) => {
-    const parts = text.split(/(\*[^*]+\*|_[^_]+_)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('*') && part.endsWith('*')) {
-        return <strong key={i}>{part.slice(1, -1)}</strong>;
-      }
-      if (part.startsWith('_') && part.endsWith('_')) {
-        return <em key={i}>{part.slice(1, -1)}</em>;
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
-
-  const quickReplies = getQuickReplies();
 
   return (
     <section id="playground" className="py-20 bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
+        {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             Simulação interativa
           </div>
           <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
             Experimente o bot agora
           </h2>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Esta é a experiência real do paciente no WhatsApp. Interaja como se fosse ele.
+            Toque nas opções como o paciente faz — menus e botões nativos do WhatsApp, sem digitar nada.
           </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Phone Mockup */}
+          {/* Phone */}
           <div className="max-w-sm mx-auto w-full">
-            {/* Phone Frame */}
             <div className="bg-slate-800 rounded-[3rem] p-3 shadow-2xl border-4 border-slate-700">
               {/* Status bar */}
-              <div className="flex justify-between items-center px-5 py-1 text-white text-xs mb-1">
+              <div className="flex justify-between items-center px-5 py-1 text-white text-[11px] mb-1">
                 <span>9:41</span>
-                <div className="flex items-center gap-1">
-                  <span>●●●</span>
-                  <span>WiFi</span>
-                  <span>100%</span>
-                </div>
+                <span>●●● WiFi 🔋</span>
               </div>
 
               <div className="bg-white rounded-[2.2rem] overflow-hidden h-[580px] flex flex-col">
-                {/* WhatsApp Header */}
-                <div className="bg-[#075E54] text-white px-4 py-3 flex items-center gap-3">
+                {/* WA header */}
+                <div className="bg-[#075E54] text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
                   <div className="w-9 h-9 bg-[#25D366] rounded-full flex items-center justify-center flex-shrink-0">
                     <MessageCircle size={18} className="text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm leading-tight">Clínica Demo</p>
-                    <p className="text-xs text-green-300">online agora</p>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">Clínica Demo</p>
+                    <p className="text-xs text-green-300 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+                      online agora
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3 text-white/70">
-                    <Video size={18} />
-                    <Phone size={18} />
-                    <MoreVertical size={18} />
+                  <div className="flex items-center gap-3 text-white/60">
+                    <Video size={17} /><Phone size={17} /><MoreVertical size={17} />
                   </div>
                 </div>
 
-                {/* Chat background */}
+                {/* Chat */}
                 <div
                   className="flex-1 overflow-y-auto p-3 space-y-1"
-                  style={{
-                    backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e5ddd5' fill-opacity='0.3'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-                    backgroundColor: '#e5ddd5',
-                  }}
+                  style={{ backgroundColor: '#e5ddd5' }}
                   aria-live="polite"
                 >
-                  {/* Date divider */}
                   <div className="flex justify-center mb-2">
-                    <span className="bg-white/80 text-gray-500 text-xs px-3 py-1 rounded-full shadow-sm">
-                      hoje
-                    </span>
+                    <span className="bg-white/80 text-gray-500 text-[10px] px-3 py-1 rounded-full shadow-sm">hoje</span>
                   </div>
 
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.isBot ? 'justify-start' : 'justify-end'} mb-1`}
-                    >
-                      <div
-                        className={`max-w-[82%] px-3 py-2 rounded-lg shadow-sm text-sm ${
-                          message.isBot
-                            ? 'bg-white text-gray-800 rounded-tl-none'
-                            : 'bg-[#dcf8c6] text-gray-800 rounded-tr-none'
-                        }`}
-                      >
-                        <p className="whitespace-pre-line leading-relaxed text-[13px]">
-                          {renderText(message.text)}
-                        </p>
-                        <div className={`flex items-center gap-1 mt-0.5 ${message.isBot ? 'justify-start' : 'justify-end'}`}>
-                          <span className="text-[10px] text-gray-400">
-                            {formatTime(message.timestamp)}
-                          </span>
-                          {!message.isBot && (
-                            <span className="text-[10px] text-blue-500">✓✓</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  {messages.map((msg) => {
+                    if (msg.kind === 'text')    return <TextBubble    key={msg.id} msg={msg} />;
+                    if (msg.kind === 'buttons') return <ButtonsBubble key={msg.id} msg={msg} onPick={onButtonPick} disabled={isDisabled} />;
+                    if (msg.kind === 'list')    return <ListBubble    key={msg.id} msg={msg} onPick={onListPick}   disabled={isDisabled} />;
+                    return null;
+                  })}
 
                   {isTyping && (
                     <div className="flex justify-start mb-1">
                       <div className="bg-white px-4 py-3 rounded-lg rounded-tl-none shadow-sm">
-                        <div className="flex space-x-1 items-center">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        <div className="flex space-x-1 items-center h-3">
+                          {[0, 150, 300].map(d => (
+                            <div key={d} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                          ))}
                         </div>
                       </div>
                     </div>
                   )}
-
-                  <div ref={messagesEndRef} />
+                  <div ref={endRef} />
                 </div>
 
-                {/* Input area */}
-                <div className="bg-[#f0f0f0] px-2 py-2 flex items-center gap-2">
-                  <div className="flex-1 bg-white rounded-full px-4 py-2 flex items-center">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      disabled={isDisabled}
-                      placeholder="Digite uma mensagem..."
-                      className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400 disabled:opacity-50"
-                      aria-label="Campo de mensagem"
-                    />
+                {/* Barra inferior estática (decorativa — sem input real) */}
+                <div className="flex-shrink-0 bg-[#f0f0f0] px-3 py-2 flex items-center gap-2 border-t border-gray-200">
+                  <div className="flex-1 bg-white rounded-full px-4 py-2 text-[12px] text-gray-400 select-none">
+                    Selecione uma opção acima ↑
                   </div>
-                  <button
-                    onClick={() => handleInput(inputValue)}
-                    disabled={isDisabled || !inputValue.trim()}
-                    className="w-10 h-10 bg-[#25D366] hover:bg-[#20ba5a] disabled:opacity-40 rounded-full flex items-center justify-center transition-colors flex-shrink-0"
-                    aria-label="Enviar mensagem"
-                  >
-                    <Send size={16} className="text-white" />
-                  </button>
+                  <div className="w-9 h-9 bg-[#25D366] rounded-full flex items-center justify-center opacity-40">
+                    <MessageCircle size={16} className="text-white" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Reset button */}
             <div className="flex justify-center mt-4">
-              <button
-                onClick={resetSimulation}
-                className="flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm transition-colors"
-              >
-                <RotateCcw size={14} />
-                Reiniciar simulação
+              <button type="button" onClick={reset} className="flex items-center gap-1.5 text-gray-400 hover:text-gray-600 text-xs transition-colors">
+                <RotateCcw size={13} /> Reiniciar simulação
               </button>
             </div>
           </div>
 
-          {/* Right panel: Quick Replies + Info */}
+          {/* Painel direito */}
           <div className="space-y-6">
-            {/* Quick replies */}
-            {quickReplies.length > 0 && (
-              <div>
-                <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-[#25D366] rounded-full"></span>
-                  Respostas rápidas (clique para enviar)
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {quickReplies.map((reply) => (
-                    <button
-                      key={reply.value}
-                      onClick={() => !isDisabled && handleInput(reply.label, { step: chatState.step })}
-                      disabled={isDisabled}
-                      className="bg-white border-2 border-[#25D366] text-[#075E54] px-4 py-2 rounded-full text-sm font-medium hover:bg-[#25D366] hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {reply.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="bg-[#075E54] rounded-2xl p-5 text-white">
+              <div className="flex items-center gap-2 mb-3">
+                <List size={18} className="text-green-300" />
+                <h3 className="font-bold text-base">Menus interativos nativos do WhatsApp</h3>
               </div>
-            )}
-
-            {/* Feature callouts */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-              <h3 className="font-bold text-slate-900 text-base">O que o bot faz de verdade:</h3>
-
-              <div className="space-y-3">
-                {[
-                  { icon: '📅', text: 'Agenda consultas pelo WhatsApp 24h por dia, sem precisar de atendente' },
-                  { icon: '🔄', text: 'Remarca e cancela com confirmação automática via mensagem' },
-                  { icon: '👨‍⚕️', text: 'Transfere para atendente humano e desativa o bot automaticamente' },
-                  { icon: '📋', text: 'Mostra os próximos agendamentos do paciente' },
-                  { icon: '⏰', text: 'Envia lembretes automáticos 24h e 1h antes da consulta' },
-                  { icon: '✅', text: 'Solicita confirmação de presença para reduzir no-show' },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="text-lg flex-shrink-0">{item.icon}</span>
-                    <p className="text-sm text-slate-600 leading-relaxed">{item.text}</p>
-                  </div>
-                ))}
-              </div>
+              <p className="text-green-100 text-sm leading-relaxed">
+                O paciente nunca precisa digitar. Toca no botão, seleciona da lista e confirma com um toque.
+                Menos erros, mais conversões, experiência profissional.
+              </p>
             </div>
 
-            {/* CTA */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
+              <h3 className="font-bold text-slate-900 text-sm">O que o bot faz de verdade:</h3>
+              {[
+                ['📋', 'Menu de lista nativo — paciente toca e seleciona, sem digitar'],
+                ['🔘', 'Botões de resposta rápida em cada etapa do fluxo'],
+                ['📅', 'Agendamento, remarcação e cancelamento com 3 toques'],
+                ['👨‍⚕️', 'Transfere para atendente com 1 toque e desativa o bot automaticamente'],
+                ['📋', 'Lista os próximos agendamentos do paciente pelo número'],
+                ['⏰', 'Lembrete automático 24h e 1h antes com botão de confirmação'],
+              ].map(([icon, text], i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-base flex-shrink-0">{icon}</span>
+                  <p className="text-sm text-slate-600">{text}</p>
+                </div>
+              ))}
+            </div>
+
             <a
               href={waLink('playground')}
               target="_blank"
@@ -531,16 +650,12 @@ const ChatbotPlayground = () => {
           </div>
         </div>
 
-        {/* Disclaimer */}
         <div className="text-center mt-10">
           <div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-700 border border-yellow-200 px-4 py-2 rounded-full text-sm">
-            <span>⚠️</span>
-            Simulação demonstrativa — não envia mensagens reais ao WhatsApp
+            ⚠️ Simulação demonstrativa — não envia mensagens reais
           </div>
         </div>
       </div>
     </section>
   );
-};
-
-export default ChatbotPlayground;
+}
