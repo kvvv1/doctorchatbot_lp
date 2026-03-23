@@ -7,6 +7,7 @@ type Integration = {
   name: string;
   description: string;
   status: 'available' | 'conditional';
+  logoPadding?: string;
 };
 
 const Integrations = () => {
@@ -46,6 +47,7 @@ const Integrations = () => {
       name: 'ZenFisio',
       description: 'Conector especializado para fisioterapia',
       status: 'conditional',
+      logoPadding: 'p-0',
     },
     {
       logo: '/shosp.png',
@@ -109,7 +111,7 @@ const Integrations = () => {
               className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 hover:shadow-lg hover:border-gray-300 transition-all duration-300 flex flex-col"
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden p-1.5">
+                <div className={`w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden ${integration.logoPadding ?? 'p-1.5'}`}>
                   <img
                     src={integration.logo}
                     alt={integration.name}
