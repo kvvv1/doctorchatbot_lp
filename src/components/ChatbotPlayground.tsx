@@ -245,9 +245,15 @@ export default function ChatbotPlayground() {
   const [state, setState]         = useState<ChatState>({ step: 'menu' });
   const [isTyping, setIsTyping]   = useState(false);
   const [isDisabled, setIsDisabled] = useState(false);
-  const endRef = useRef<HTMLDivElement>(null);
+  const chatAreaRef  = useRef<HTMLDivElement>(null);
+  const hasInteracted = useRef(false);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
+  // Só rola o chat interno após o usuário ter interagido — nunca rola a página
+  useEffect(() => {
+    if (!hasInteracted.current) return;
+    const el = chatAreaRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, isTyping]);
 
   // ── Adicionar mensagem bot com delay ──
   const addBot = useCallback((msg: Omit<Message, 'id' | 'timestamp'>): Promise<void> => {
@@ -295,6 +301,7 @@ export default function ChatbotPlayground() {
 
   // ── Handler: lista principal ──
   const onListPick = async (rowId: string, title: string, msgId: string) => {
+    hasInteracted.current = true;
     markUsed(msgId, rowId);
     addUser(title);
 
@@ -381,6 +388,7 @@ export default function ChatbotPlayground() {
 
   // ── Handler: botões ──
   const onButtonPick = async (btnId: string, label: string, msgId: string) => {
+    hasInteracted.current = true;
     markUsed(msgId, btnId);
     addUser(label);
 
@@ -557,6 +565,7 @@ export default function ChatbotPlayground() {
 
                 {/* Chat */}
                 <div
+                  ref={chatAreaRef}
                   className="flex-1 overflow-y-auto p-3 space-y-1"
                   style={{ backgroundColor: '#e5ddd5' }}
                   aria-live="polite"
@@ -583,7 +592,7 @@ export default function ChatbotPlayground() {
                       </div>
                     </div>
                   )}
-                  <div ref={endRef} />
+
                 </div>
 
                 {/* Barra inferior estática (decorativa — sem input real) */}
