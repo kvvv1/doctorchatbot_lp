@@ -1,140 +1,50 @@
 import React from 'react';
 import { CheckCircle, Webhook } from 'lucide-react';
 
-// ── SVG Logos ──────────────────────────────────────────────────────────────
-
-const GestaoDS = () => (
-  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    <rect width="40" height="40" rx="10" fill="#1346A8"/>
-    <text x="20" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="800" fontFamily="Arial, sans-serif" letterSpacing="0.3">GESTÃO</text>
-    <text x="20" y="29" textAnchor="middle" fill="#7EB3FF" fontSize="11" fontWeight="900" fontFamily="Arial, sans-serif" letterSpacing="1">DS</text>
-  </svg>
-);
-
-const IClinicGroup = () => (
-  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    {/* iClinic — teal */}
-    <rect x="1" y="1" width="17" height="17" rx="5" fill="#0EA5E9"/>
-    <text x="9.5" y="14" textAnchor="middle" fill="white" fontSize="9" fontWeight="800" fontFamily="Arial">iC</text>
-    {/* Feegow — blue */}
-    <rect x="22" y="1" width="17" height="17" rx="5" fill="#2563EB"/>
-    <text x="30.5" y="14" textAnchor="middle" fill="white" fontSize="9" fontWeight="800" fontFamily="Arial">Fg</text>
-    {/* Shosp — indigo */}
-    <rect x="11" y="22" width="18" height="17" rx="5" fill="#6366F1"/>
-    <text x="20" y="35" textAnchor="middle" fill="white" fontSize="9" fontWeight="800" fontFamily="Arial">Sh</text>
-  </svg>
-);
-
-const NinsaudeGroup = () => (
-  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    {/* Ninsaúde — teal */}
-    <rect x="1" y="11" width="18" height="18" rx="5" fill="#0D9488"/>
-    <text x="10" y="24" textAnchor="middle" fill="white" fontSize="11" fontWeight="900" fontFamily="Arial">Ni</text>
-    {/* ZenFisio — purple */}
-    <rect x="21" y="11" width="18" height="18" rx="5" fill="#7C3AED"/>
-    <text x="30" y="24" textAnchor="middle" fill="white" fontSize="10" fontWeight="900" fontFamily="Arial">ZF</text>
-  </svg>
-);
-
-const GoogleCalendar = () => (
-  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    {/* Body */}
-    <rect x="3" y="7" width="34" height="30" rx="4" fill="white" stroke="#E5E7EB" strokeWidth="1"/>
-    {/* Blue header */}
-    <path d="M3 11C3 8.79 4.79 7 7 7H33C35.21 7 37 8.79 37 11V17H3V11Z" fill="#1A73E8"/>
-    {/* Date number */}
-    <text x="20" y="31" textAnchor="middle" fill="#1A73E8" fontSize="12" fontWeight="700" fontFamily="Arial">31</text>
-    {/* Hook circles */}
-    <rect x="12" y="4" width="3" height="6" rx="1.5" fill="#5F6368"/>
-    <rect x="25" y="4" width="3" height="6" rx="1.5" fill="#5F6368"/>
-    {/* Google colors stripe */}
-    <rect x="3" y="14" width="9" height="3" fill="#EA4335"/>
-    <rect x="12" y="14" width="8" height="3" fill="#FBBC04"/>
-    <rect x="20" y="14" width="8" height="3" fill="#34A853"/>
-    <rect x="28" y="14" width="9" height="3" fill="#4285F4"/>
-  </svg>
-);
-
-const ZapierLogo = () => (
-  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    <rect width="40" height="40" rx="10" fill="#FF4A00"/>
-    {/* Z arrow */}
-    <path d="M10 12H30L10 20H30" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M10 20L30 28H10" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-
-const SpreadsheetLogo = () => (
-  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    <rect width="40" height="40" rx="10" fill="#16A34A"/>
-    {/* Doc shape */}
-    <rect x="8" y="6" width="19" height="24" rx="2" fill="white" opacity="0.2"/>
-    <rect x="8" y="6" width="19" height="24" rx="2" stroke="white" strokeWidth="1.5" opacity="0.6"/>
-    {/* Fold corner */}
-    <path d="M22 6L27 6V11L22 6Z" fill="white" opacity="0.6"/>
-    <line x1="8" y1="14" x2="27" y2="14" stroke="white" strokeWidth="1.2" opacity="0.7"/>
-    <line x1="8" y1="19" x2="27" y2="19" stroke="white" strokeWidth="1.2" opacity="0.7"/>
-    <line x1="8" y1="24" x2="27" y2="24" stroke="white" strokeWidth="1.2" opacity="0.7"/>
-    <line x1="16" y1="6" x2="16" y2="30" stroke="white" strokeWidth="1.2" opacity="0.7"/>
-    {/* CSV text */}
-    <text x="31" y="33" textAnchor="middle" fill="white" fontSize="7" fontWeight="800" fontFamily="Arial">CSV</text>
-  </svg>
-);
-
-// ── Component ───────────────────────────────────────────────────────────────
-
 type Integration = {
-  logo: React.ReactNode;
+  logos: string[];
   name: string;
   description: string;
   status: 'available' | 'conditional';
-  bg: string;
 };
 
 const Integrations = () => {
   const integrations: Integration[] = [
     {
-      logo: <GestaoDS />,
+      logos: ['/gestao_ds_logo.jfif'],
       name: 'GestãoDS',
       description: 'Integração direta via API/Webhook com sincronização em tempo real',
       status: 'available',
-      bg: 'bg-blue-50',
     },
     {
-      logo: <IClinicGroup />,
+      logos: ['/iclinic.png', '/feegow.png', '/shosp.png'],
       name: 'iClinic, Feegow, Shosp',
       description: 'Integração quando API disponível. Validamos na ativação',
       status: 'conditional',
-      bg: 'bg-sky-50',
     },
     {
-      logo: <NinsaudeGroup />,
+      logos: ['/ninsaude.jfif', '/zenfisio.png'],
       name: 'Ninsaúde, ZenFisio',
       description: 'Conectores especializados para gestão de fisioterapia e saúde',
       status: 'conditional',
-      bg: 'bg-teal-50',
     },
     {
-      logo: <GoogleCalendar />,
+      logos: ['/google-calander.png'],
       name: 'Google Calendar / iCal',
       description: 'Sincronização automática com calendários existentes',
       status: 'available',
-      bg: 'bg-white',
     },
     {
-      logo: <ZapierLogo />,
+      logos: ['/zapier.png'],
       name: 'Zapier',
       description: 'Automações sem código para conectar centenas de ferramentas',
       status: 'available',
-      bg: 'bg-orange-50',
     },
     {
-      logo: <SpreadsheetLogo />,
+      logos: ['/google-sheets.png'],
       name: 'CSV / Planilha',
       description: 'Importação e exportação rápida para backup e relatórios',
       status: 'available',
-      bg: 'bg-green-50',
     },
   ];
 
@@ -179,11 +89,24 @@ const Integrations = () => {
               className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-lg hover:border-gray-300 transition-all duration-300"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl ${integration.bg} flex items-center justify-center shadow-sm border border-gray-100 p-1.5`}>
-                  {integration.logo}
+                {/* Logo(s) */}
+                <div className="flex items-center gap-2">
+                  {integration.logos.map((src, i) => (
+                    <div
+                      key={i}
+                      className="w-12 h-12 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden p-1"
+                    >
+                      <img
+                        src={src}
+                        alt={integration.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  ))}
                 </div>
                 {getStatusBadge(integration.status)}
               </div>
+
               <h3 className="text-lg font-semibold text-slate-900 mb-3">
                 {integration.name}
               </h3>
