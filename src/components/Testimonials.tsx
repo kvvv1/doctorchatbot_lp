@@ -7,7 +7,8 @@ const Testimonials = () => {
       name: 'Dr. Carlos Mendes',
       role: 'Diretor Clínico',
       company: 'Clínica São Paulo',
-      avatar: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop&crop=faces',
+      initials: 'CM',
+      color: 'bg-sky-600',
       content: 'O DoctorChatBot reduziu nosso no-show em 78%. Agora conseguimos atender mais pacientes sem contratar mais pessoal. A equipe adora a praticidade do painel.',
       rating: 5,
       speciality: 'Dermatologia'
@@ -16,7 +17,8 @@ const Testimonials = () => {
       name: 'Dra. Marina Silva',
       role: 'Proprietária',
       company: 'Fisio+ Rehabilitation',
-      avatar: 'https://images.pexels.com/photos/5452292/pexels-photo-5452292.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop&crop=faces',
+      initials: 'MS',
+      color: 'bg-purple-600',
       content: 'Impressionante como nossos pacientes se adaptaram rapidamente. O bot é tão natural que muitos acham que estão falando com uma pessoa. Os lembretes automáticos são um game changer.',
       rating: 5,
       speciality: 'Fisioterapia'
@@ -25,7 +27,8 @@ const Testimonials = () => {
       name: 'Dr. Roberto Costa',
       role: 'Coordenador',
       company: 'OdontoCenter',
-      avatar: 'https://images.pexels.com/photos/6749778/pexels-photo-6749778.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop&crop=faces',
+      initials: 'RC',
+      color: 'bg-emerald-600',
       content: 'Economizamos 5 minutos por agendamento. Em uma clínica com 300 agendamentos/mês, isso representa 25 horas que investimos no atendimento. ROI incrível.',
       rating: 5,
       speciality: 'Odontologia'
@@ -50,7 +53,7 @@ const Testimonials = () => {
             O que nossos clientes dizem
           </h2>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-            Centenas de clínicas já transformaram seus agendamentos com o DoctorChatBot
+            Clínicas em MG, SP e RJ já automatizaram seus agendamentos com o DoctorChatBot
           </p>
         </div>
 
@@ -79,12 +82,9 @@ const Testimonials = () => {
 
               {/* Author */}
               <div className="flex items-center gap-4">
-                <img
-                  src={testimonial.avatar}
-                  alt={testimonial.name}
-                  className="w-12 h-12 rounded-full object-cover"
-                  loading="lazy"
-                />
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${testimonial.color}`}>
+                  <span className="text-white font-bold text-sm">{testimonial.initials}</span>
+                </div>
                 <div>
                   <div className="font-semibold text-slate-900">
                     {testimonial.name}
@@ -104,8 +104,8 @@ const Testimonials = () => {
         {/* Stats */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-sky-600 mb-2">300+</div>
-            <div className="text-slate-600 text-sm">Clínicas ativas</div>
+            <div className="text-3xl font-bold text-sky-600 mb-2">MG · SP · RJ</div>
+            <div className="text-slate-600 text-sm">Estados atendidos</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600 mb-2">78%</div>

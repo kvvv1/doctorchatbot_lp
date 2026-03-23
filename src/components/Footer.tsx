@@ -14,10 +14,15 @@ const Footer = () => {
                 Doctor<span className="text-sky-400">ChatBot</span>
               </span>
             </div>
-            <p className="text-slate-300 leading-relaxed max-w-md">
-              Agenda inteligente que trabalha por você. Automatize agendamentos, 
+            <p className="text-slate-300 leading-relaxed max-w-md mb-6">
+              Agenda inteligente que trabalha por você. Automatize agendamentos,
               reduza no-show e foque no que realmente importa: cuidar dos seus pacientes.
             </p>
+            <div className="space-y-1.5 text-sm text-slate-400">
+              <p>📧 <a href="mailto:contato@doctorchatbot.com.br" className="hover:text-sky-400 transition-colors">contato@doctorchatbot.com.br</a></p>
+              <p>📍 Belo Horizonte, MG — Brasil</p>
+              <p>🏢 CNPJ: a confirmar</p>
+            </div>
           </div>
 
           {/* Quick links */}

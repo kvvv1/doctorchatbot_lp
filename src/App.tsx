@@ -19,9 +19,9 @@ function App() {
       <Header />
       <main>
         <Hero />
+        <HowItWorks />
         <ChatbotPlayground />
         <DashboardShowcase />
-        <HowItWorks />
         <Features />
         <Integrations />
         <ROICalculator />

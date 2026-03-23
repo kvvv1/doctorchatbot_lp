@@ -4,7 +4,7 @@ import { waLink } from '../utils/whatsapp';
 
 const FinalCTA = () => {
   return (
-    <section className="py-20 bg-gradient-to-r from-sky-600 to-green-600">
+    <section className="py-20 bg-gradient-to-br from-sky-700 to-sky-900">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 lg:p-12 shadow-2xl border border-white/20">
           <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6">

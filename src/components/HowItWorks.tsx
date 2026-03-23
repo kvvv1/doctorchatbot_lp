@@ -11,9 +11,9 @@ const HowItWorks = () => {
     },
     {
       icon: Clock,
-      title: 'Pedido pendente',
-      description: 'O painel organiza todos os pedidos e evita choques de horário, mostrando disponibilidade em tempo real.',
-      color: 'from-orange-400 to-orange-600'
+      title: 'Consulta confirmada',
+      description: 'O bot confirma na hora com base na disponibilidade da agenda. O paciente recebe a confirmação direto no WhatsApp, sem esperar.',
+      color: 'from-sky-400 to-sky-600'
     },
     {
       icon: CheckCircle,
