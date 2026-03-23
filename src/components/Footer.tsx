@@ -1,4 +1,5 @@
 import React from 'react';
+import { Mail, MapPin, Building2, Heart } from 'lucide-react';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -19,9 +20,9 @@ const Footer = () => {
               reduza no-show e foque no que realmente importa: cuidar dos seus pacientes.
             </p>
             <div className="space-y-1.5 text-sm text-slate-400">
-              <p>📧 <a href="mailto:contato@doctorchatbot.com.br" className="hover:text-sky-400 transition-colors">contato@doctorchatbot.com.br</a></p>
-              <p>📍 Belo Horizonte, MG — Brasil</p>
-              <p>🏢 CNPJ: a confirmar</p>
+              <p className="flex items-center gap-2"><Mail size={14} className="text-slate-500 flex-shrink-0" /><a href="mailto:contato@doctorchatbot.com.br" className="hover:text-sky-400 transition-colors">contato@doctorchatbot.com.br</a></p>
+              <p className="flex items-center gap-2"><MapPin size={14} className="text-slate-500 flex-shrink-0" />Belo Horizonte, MG — Brasil</p>
+              <p className="flex items-center gap-2"><Building2 size={14} className="text-slate-500 flex-shrink-0" />CNPJ: a confirmar</p>
             </div>
           </div>
 
@@ -106,8 +107,8 @@ const Footer = () => {
             © {currentYear} DoctorChatBot. Todos os direitos reservados.
           </div>
           
-          <div className="text-slate-400 text-sm">
-            <span>Feito com ❤️ para transformar clínicas</span>
+          <div className="text-slate-400 text-sm flex items-center gap-1.5">
+            <span>Feito com</span><Heart size={13} className="text-red-400 fill-current" /><span>para transformar clínicas</span>
           </div>
         </div>
       </div>

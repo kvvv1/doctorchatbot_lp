@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Star } from 'lucide-react';
+import { Check, Star, CheckCircle2, Zap } from 'lucide-react';
 import { waLink } from '../utils/whatsapp';
 
 const Plans = () => {
@@ -147,8 +147,9 @@ const Plans = () => {
 
         <div className="grid md:grid-cols-2 gap-6 mt-4">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-            <h3 className="font-semibold text-slate-900 mb-4">
-              ✅ Incluído em todos os planos:
+            <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <CheckCircle2 size={18} className="text-green-500" />
+              Incluído em todos os planos:
             </h3>
             <ul className="space-y-2 text-slate-600 text-sm">
               <li>• Chatbot WhatsApp com menus e botões interativos</li>
@@ -160,8 +161,9 @@ const Plans = () => {
             </ul>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-            <h3 className="font-semibold text-slate-900 mb-4">
-              🚀 Implementação rápida:
+            <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <Zap size={18} className="text-sky-500" />
+              Implementação rápida:
             </h3>
             <ul className="space-y-2 text-slate-600 text-sm">
               <li>• Setup completo em até 5 dias úteis</li>

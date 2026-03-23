@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageCircle, ArrowRight } from 'lucide-react';
+import { MessageCircle, ArrowRight, Clock, Rocket } from 'lucide-react';
 import { waLink } from '../utils/whatsapp';
 
 const FinalCTA = () => {
@@ -43,8 +43,10 @@ const FinalCTA = () => {
             <ArrowRight size={20} />
           </a>
 
-          <div className="mt-8 text-sky-100 text-sm">
-            <p>💬 Resposta em até 5 minutos • 🚀 Implementação garantida</p>
+          <div className="mt-8 text-sky-100 text-sm flex items-center justify-center gap-4">
+            <span className="flex items-center gap-1.5"><Clock size={14} /> Resposta em até 5 minutos</span>
+            <span className="opacity-40">•</span>
+            <span className="flex items-center gap-1.5"><Rocket size={14} /> Implementação garantida</span>
           </div>
         </div>
 
