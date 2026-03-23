@@ -89,10 +89,6 @@ const Plans = () => {
           <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-6">
             Escolha o plano ideal para sua clínica. Todos incluem suporte completo e atualizações gratuitas.
           </p>
-          <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm font-medium">
-            <span>💡</span>
-            Setup único: R$ 299–799. Cancele quando quiser, sem multa.
-          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">
