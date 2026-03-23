@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Bell, MessageCircle, Check, X, Search, Filter, BarChart2, Calendar, Users, TrendingUp } from 'lucide-react';
+import { Bell, MessageCircle, Check, X, Search, Filter, BarChart2, Calendar, Users, TrendingUp, ClipboardList } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { waLink } from '../utils/whatsapp';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -434,10 +435,12 @@ function RelatoriosMockup() {
 
 // ── Tabs config ───────────────────────────────────────────────────────────────
 
-const TABS: { id: TabId; label: string; description: string; bullets: { color: string; text: string }[]; mockup: React.ReactNode }[] = [
+const TABS: { id: TabId; label: string; icon: LucideIcon; iconColor: string; description: string; bullets: { color: string; text: string }[]; mockup: React.ReactNode }[] = [
   {
     id: 'inbox',
-    label: '📥 Solicitações',
+    label: 'Solicitações',
+    icon: ClipboardList,
+    iconColor: 'text-sky-500',
     description: 'Todos os pedidos de agendamento chegam aqui. Confirme ou cancele com um clique — o paciente recebe a resposta no WhatsApp automaticamente.',
     bullets: [
       { color: 'bg-sky-500',   text: 'Aprovação em 1 clique com notificação automática' },
@@ -448,7 +451,9 @@ const TABS: { id: TabId; label: string; description: string; bullets: { color: s
   },
   {
     id: 'agenda',
-    label: '📅 Agenda',
+    label: 'Agenda',
+    icon: Calendar,
+    iconColor: 'text-purple-500',
     description: 'Visualize o dia completo com todos os horários ocupados e livres. Crie agendamentos manuais ou integre com Google Calendar.',
     bullets: [
       { color: 'bg-purple-500', text: 'Visão diária, semanal e mensal' },
@@ -459,7 +464,9 @@ const TABS: { id: TabId; label: string; description: string; bullets: { color: s
   },
   {
     id: 'lembretes',
-    label: '🔔 Lembretes',
+    label: 'Lembretes',
+    icon: Bell,
+    iconColor: 'text-orange-500',
     description: 'Lembretes automáticos 24h e 12h antes da consulta. Se o paciente não ler, o sistema reenvia. Tudo rastreado com status de leitura.',
     bullets: [
       { color: 'bg-orange-500', text: 'Envio automático T-24h e T-12h' },
@@ -470,7 +477,9 @@ const TABS: { id: TabId; label: string; description: string; bullets: { color: s
   },
   {
     id: 'relatorios',
-    label: '📊 Relatórios',
+    label: 'Relatórios',
+    icon: BarChart2,
+    iconColor: 'text-emerald-500',
     description: 'Acompanhe a taxa de conversão, comparecimento e horários de pico. Dados que ajudam a otimizar a agenda e reduzir no-show.',
     bullets: [
       { color: 'bg-emerald-500', text: 'Funil: conversa → agendado → confirmado → compareceu' },
@@ -507,22 +516,27 @@ const DashboardShowcase = () => {
         {/* Tabs */}
         <div className="mb-8 border-b border-gray-200">
           <nav className="-mb-px flex gap-1 overflow-x-auto" role="tablist">
-            {TABS.map(t => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActive(t.id)}
-                role="tab"
-                aria-selected={active === t.id}
-                className={`py-2.5 px-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors rounded-t-lg ${
-                  active === t.id
-                    ? 'border-sky-500 text-sky-600 bg-sky-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+            {TABS.map(t => {
+              const Icon = t.icon;
+              const isActive = active === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActive(t.id)}
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`flex items-center gap-2 py-2.5 px-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors rounded-t-lg ${
+                    isActive
+                      ? 'border-sky-500 text-slate-800 bg-sky-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon size={15} className={isActive ? t.iconColor : 'text-gray-400'} />
+                  {t.label}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
