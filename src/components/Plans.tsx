@@ -1,12 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, Star, CheckCircle2, Zap } from 'lucide-react';
 import { waLink } from '../utils/whatsapp';
+import { trackClick } from '../utils/track';
+
+type Billing = 'monthly' | 'semiannual';
+
+const mpCheckoutUrl = (planId: string) =>
+  `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=${planId}`;
+
+/** Rota /consulta envia pro WhatsApp; demais rotas abrem o checkout do cartão. */
+const isWhatsappRoute = () => {
+  if (typeof window === 'undefined') return false;
+  return window.location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase() === 'consulta';
+};
 
 const Plans = () => {
+  const [billing, setBilling] = useState<Billing>('monthly');
+  const isSemi = billing === 'semiannual';
+  const whatsappRoute = isWhatsappRoute();
+
   const mainPlans = [
     {
       name: 'Essencial',
       price: 397,
+      priceSemiannual: 2144 as number | null,
+      mpPlanId: '5390bcd7d7a64fa799542b16d7c8c9e1',
+      mpPlanIdSemi: '8705b302648b410c80cdba5e6c46bff3' as string | null,
+
       description: 'Para médico solo ou consultório com 1 profissional',
       popular: false,
       color: 'blue',
@@ -22,12 +42,16 @@ const Plans = () => {
         'Reagendamento automático de no-show',
         '1 médico · 1 agenda',
       ],
-      ctaText: 'Começar agora',
+      ctaText: 'Teste grátis de 7 dias',
       ctaLink: waLink('plan_essencial'),
     },
     {
       name: 'Profissional',
       price: 597,
+      priceSemiannual: 3224 as number | null,
+      mpPlanId: '5d5bd8ab00bf4684a3120ed8fb95ed69',
+      mpPlanIdSemi: '0b1b2cc5720e442cada42faf9eb4f50e' as string | null,
+
       description: 'Para quem usa Google Calendar ou sistema de gestão',
       popular: true,
       color: 'purple',
@@ -45,29 +69,8 @@ const Plans = () => {
         'Relatórios mensais de atendimento',
         'Suporte prioritário via WhatsApp',
       ],
-      ctaText: 'Assinar Profissional',
+      ctaText: 'Teste grátis de 7 dias',
       ctaLink: waLink('plan_profissional'),
-    },
-    {
-      name: 'Clinic Pro',
-      price: 997,
-      description: 'Para clínicas com 2 ou mais médicos ou especialidades',
-      popular: false,
-      color: 'amber',
-      features: [
-        'Tudo do Profissional',
-        'Até 3 médicos com agendas independentes',
-        'Mais de 3 médicos sob consulta',
-        'Roteamento automático por especialidade',
-        'Gestão de fila de espera por médico',
-        'Reagendamento automático de no-show',
-        'Relatórios por médico e especialidade',
-        'Atendentes ilimitados',
-        'Onboarding dedicado + treinamento',
-        'Whitelabel opcional',
-      ],
-      ctaText: 'Falar com vendas',
-      ctaLink: waLink('plan_clinic_pro'),
     },
   ];
 
@@ -82,11 +85,6 @@ const Plans = () => {
       badge: 'bg-purple-500 text-white',
       btn: 'bg-purple-600 hover:bg-purple-700 text-white',
     },
-    amber: {
-      border: 'border-amber-200 hover:border-amber-400',
-      badge: 'bg-amber-500 text-white',
-      btn: 'bg-amber-600 hover:bg-amber-700 text-white',
-    },
   };
 
   return (
@@ -99,9 +97,31 @@ const Plans = () => {
           <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-6">
             Escolha o plano ideal para sua clínica. Todos incluem suporte completo e atualizações gratuitas.
           </p>
+
+          <div className="inline-flex items-center gap-1 bg-gray-100 p-1 rounded-full">
+            <button
+              onClick={() => setBilling('monthly')}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${
+                !isSemi ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Mensal
+            </button>
+            <button
+              onClick={() => setBilling('semiannual')}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors flex items-center gap-2 ${
+                isSemi ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Semestral
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                10% OFF
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto mb-12">
           {mainPlans.map((plan, index) => {
             const colors = colorMap[plan.color];
             return (
@@ -125,11 +145,26 @@ const Plans = () => {
                   </div>
 
                   <div className="mb-8">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold text-slate-900">R$ {plan.price}</span>
-                      <span className="text-slate-500">/mês</span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">Cobrança mensal · Cancele quando quiser</p>
+                    {isSemi && plan.priceSemiannual ? (
+                      <>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-bold text-slate-900">R$ {plan.priceSemiannual.toLocaleString('pt-BR')}</span>
+                          <span className="text-slate-500">/semestre</span>
+                        </div>
+                        <p className="text-sm text-green-600 font-medium mt-1">
+                          Equivale a R$ {Math.round(plan.priceSemiannual / 6)}/mês · economize R$ {(plan.price * 6 - plan.priceSemiannual).toLocaleString('pt-BR')}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">Cobrança a cada 6 meses · Cancele quando quiser</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-bold text-slate-900">R$ {plan.price}</span>
+                          <span className="text-slate-500">/mês</span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">Cobrança mensal · Cancele quando quiser</p>
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-3 mb-8">
@@ -141,14 +176,25 @@ const Plans = () => {
                     ))}
                   </div>
 
-                  <a
-                    href={plan.ctaLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`w-full py-3 px-6 rounded-xl font-semibold text-center transition-colors block ${colors.btn}`}
-                  >
-                    {plan.ctaText}
-                  </a>
+                  {(() => {
+                    const planId = isSemi ? plan.mpPlanIdSemi : plan.mpPlanId;
+                    // /consulta -> WhatsApp. Caso contrário, checkout do cartão.
+                    // Sem plano (ex: Essencial anual) -> cai no WhatsApp.
+                    const href = whatsappRoute || !planId ? plan.ctaLink : mpCheckoutUrl(planId);
+                    const dest = whatsappRoute || !planId ? 'whatsapp' : 'checkout';
+                    const label = `${plan.name.toLowerCase()}_${isSemi ? 'semestral' : 'mensal'}_${dest}`;
+                    return (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackClick(label)}
+                        className={`w-full py-3 px-6 rounded-xl font-semibold text-center transition-colors block ${colors.btn}`}
+                      >
+                        {plan.ctaText}
+                      </a>
+                    );
+                  })()}
                 </div>
               </div>
             );

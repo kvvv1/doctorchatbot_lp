@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { trackVisit } from './utils/track';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ChatbotPlayground from './components/ChatbotPlayground';
@@ -14,6 +15,10 @@ import FinalCTA from './components/FinalCTA';
 import Footer from './components/Footer';
 
 function App() {
+  useEffect(() => {
+    trackVisit();
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       <Header />

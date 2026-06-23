@@ -79,7 +79,7 @@ const Footer = () => {
               </li>
               <li>
                 <a
-                  href="https://wa.me/5531995531183?text=Olá! Preciso de ajuda técnica com o DoctorChatBot.%0A%0A— origem: footer"
+                  href="https://wa.me/5531991666106?text=Olá! Preciso de ajuda técnica com o DoctorChatBot.%0A%0A— origem: footer"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-slate-300 hover:text-sky-400 transition-colors"

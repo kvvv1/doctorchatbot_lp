@@ -123,7 +123,7 @@ const FAQ = () => {
               funcionalidades ou integrações específicas.
             </p>
             <a
-              href="https://wa.me/5531995531183?text=Olá! Tenho algumas dúvidas sobre o DoctorChatBot que não estão no FAQ. Podem me ajudar?%0A%0A— origem: faq"
+              href="https://wa.me/5531991666106?text=Olá! Tenho algumas dúvidas sobre o DoctorChatBot que não estão no FAQ. Podem me ajudar?%0A%0A— origem: faq"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors"

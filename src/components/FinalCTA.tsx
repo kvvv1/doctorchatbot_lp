@@ -8,7 +8,7 @@ const FinalCTA = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 lg:p-12 shadow-2xl border border-white/20">
           <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6">
-            Pronto para ver na prática?
+            Teste grátis por 7 dias
           </h2>
           
           <p className="text-xl text-sky-100 mb-8 leading-relaxed max-w-2xl mx-auto">
@@ -39,7 +39,7 @@ const FinalCTA = () => {
             className="inline-flex items-center gap-3 bg-white hover:bg-gray-50 text-sky-600 px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
           >
             <MessageCircle size={24} />
-            Quero ver na prática
+            Começar teste grátis de 7 dias
             <ArrowRight size={20} />
           </a>
 
