@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/informacoes/:slug", "destination": "/informacoes/:slug/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
