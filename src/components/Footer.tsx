@@ -111,6 +111,18 @@ const Footer = () => {
             <span>Feito com</span><Heart size={13} className="text-red-400 fill-current" /><span>para transformar clínicas</span>
           </div>
         </div>
+
+        <div className="border-t border-slate-800 mt-6 pt-6 text-center text-slate-500 text-xs">
+          Tecnologia e automação em parceria com{' '}
+          <a
+            href="https://codexy.com.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-400 hover:text-sky-400 transition-colors underline"
+          >
+            Codexy
+          </a>
+        </div>
       </div>
     </footer>
   );
