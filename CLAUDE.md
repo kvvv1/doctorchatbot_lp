@@ -1,37 +1,46 @@
 # DoctorChatBot — Landing Page
 
-Vite + React 18 + TypeScript + Tailwind. Hospedado na Vercel (`public/vercel.json`, `cleanUrls: true`). Deploy: push em `main` → auto-deploy.
+Vite + React 18 + TypeScript + Tailwind + react-router-dom v6 + react-helmet-async.
 
-## Estrutura atual
+## Hosting real (não é Vercel)
 
-Single-page app, sem router — seções da home fazem scroll-into-view (`Hero`, `Features`, `HowItWorks`, `Integrations`, `Plans`, `ROICalculator`, `Testimonials`, `FAQ`, `FinalCTA`, `Footer`). CTA de WhatsApp centralizado em `src/utils/whatsapp.ts`.
+VPS próprio (`80.241.218.217`, nginx + pm2), não Vercel — `vercel.json`/`public/vercel.json` na raiz do repo são vestígio de uma tentativa antiga e não fazem nada em produção.
 
-## Programmatic landing pages (niche × estado) — EM CONSTRUÇÃO
+- nginx (`/etc/nginx/sites-available/doctorchatbot.com.br`) proxeia `/` pro processo pm2 `doctor-landing` (porta 3011, `pm2 serve` servindo `/opt/doctor-landing/dist`), `/api/track` e `/painel` pro processo `doctor-admin` (porta 3012).
+- `location /informacoes/` tem bloco próprio no nginx servindo direto do disco (`try_files $uri $uri/index.html /index.html`) — necessário porque `pm2 serve` só resolve `index.html` automático na raiz do site, não em subpastas (crasha com 500 se pedir a pasta sem o arquivo exato).
+- **Deploy é manual**: sem CI, sem auto-deploy no push do GitHub. Processo: `npm run build` local → `tar czf` do `dist/` → enviar por SSH (SFTP simples trava nesse servidor por algum motivo — usar `tar` via `ssh2` exec, streaming stdin) → extrair em `/opt/doctor-landing/dist` (fazer backup do dist anterior antes) → **não precisa restart do pm2** pra arquivos estáticos novos (mas rodar `pm2 restart doctor-landing` não faz mal se algo parecer não atualizar).
+- Sempre `nginx -t` antes de `systemctl reload nginx` se mexer na config.
 
-Engine pra gerar N páginas de SEO/tráfego pago (uma por nicho de negócio × estado) a partir de 1 template por nicho, sem duplicar JSX por página. Baseado na estratégia documentada pela Codexy (parceira técnica) — ver artifact `a777ca82-4dd5-45dc-8a6c-28f93b3c80fe`.
+## Estrutura da home
 
-**Stack extra necessária** (ainda não instalada): `react-router-dom` v6, `react-helmet-async`, `tsx` (devDependency).
+Single-page, sem seção via router — `Home` (dentro de `App.tsx`) faz scroll-into-view (`Hero`, `Features`, `HowItWorks`, `Integrations`, `Plans`, `ROICalculator`, `Testimonials`, `FAQ`, `FinalCTA`, `Footer`). CTA de WhatsApp da home centralizado em `src/utils/whatsapp.ts` (`waLink`).
 
-**Modelo de dados** (`src/data/landingPages.ts`, a criar):
-- `StateInfo`: label, uf, slug, preposition ("no"/"na"/"em"), campo `in` precomputado.
-- `NicheTemplate`: copy fixa (painPoints, benefits, faq, heroImage) + funções regionalizadas (`headline`, `introParagraph`, `whatsappMessage`, `seoTitle`, `seoDescription`) + `partner?` opcional.
-- `buildLandingPage(template, state)` gera `landingPages` flat array — único ponto que rotas/prerender/sitemap enxergam.
+## Landing pages programáticas (nicho × estado, nicho × capital)
 
-**Rota única dinâmica**: `/informacoes/:slug` → `getLandingPageBySlug`. Slug inválido → `NotFound` + `noindex`.
+Engine de páginas de SEO/tráfego pago geradas de templates fixos — ver `list.md` pra controle de quais (nicho, local) já existem. Baseado na estratégia documentada pela Codexy (parceira técnica) — ver artifact `a777ca82-4dd5-45dc-8a6c-28f93b3c80fe`.
 
-**Pipeline de build**: `vite build` (client) → `vite build --ssr src/entry-server.tsx --outDir dist-ssr` → `node scripts/prerender.mjs` (gera `dist/informacoes/<slug>/index.html` com head único via `react-helmet-async`) → `tsx scripts/generate-sitemap.tsx`.
+**Modelo de dados** (`src/data/landingPages.ts`):
+- `StateInfo` (20 estados) e `CityInfo` (20 capitais) — cada um com slug, preposição PT-BR precomputada (`in`), e um ângulo de conteúdo próprio (`regionalNote` pro estado, `districts`+`localFlavor` hiperlocal pra capital) pra não gerar texto repetido entre os dois níveis.
+- `NicheTemplate`: copy fixa (painPoints, benefits, faq, subheadline, partner) + pares de função `state*`/`city*` (headline, introParagraph, whatsappMessage, seoTitle, seoDescription) — cada nível tem sua própria função porque o ângulo de texto é diferente, não é só trocar o nome do local.
+- `buildStatePage`/`buildCityPage` geram `landingPages`, o único array flat que rotas/prerender/sitemap enxergam.
 
-**Hosting**: `vercel.json` precisa de rewrite pra `/informacoes/:slug` → `/informacoes/:slug/index.html` ANTES do catch-all `/(.*)`  → `/index.html`.
+**Slugs**: estado → `chatbot-para-{nicheSlug}-{estado}`; capital → `chatbot-para-{nicheSlug}-cidade-{capital}` (segmento `cidade` evita colisão com o slug de estado, mesmo quando capital e estado têm nome igual — São Paulo, Rio de Janeiro).
 
-### Decisões tomadas (2026-07-27)
+**Rota única dinâmica**: `/informacoes/:slug` → `getLandingPageBySlug`. Slug inválido → `NotFound` + `noindex` (renderizado client-side, HTTP fica 200 por limitação do fallback estático — aceitável, mas não é um 404 real).
 
-- **Fase 1**: 1 nicho ("Clínicas Médicas") × 20 estados. Cada página com peculiaridade real por estado (cidades, contexto regional) — não só nome do estado interpolado — pra evitar conteúdo fino/duplicado.
-- **Teto de páginas**: checar `landingPages.length` antes de adicionar `NicheTemplate` novo. Não crescer por inércia.
-- **Bloco parceiro (Codexy, `partner` field)**: só em 1-2 páginas piloto por enquanto, não em todas as 20. Motivo: link idêntico repetido em dezenas de páginas quase-clones é padrão de link scheme pro Google — testar piloto antes de decidir escalar.
-- **Imagens**: heroImage único por nicho normalmente, mas aqui geradas variações regionais (ver `docs/image-generation-brief.md`) pra reforçar unicidade visual por estado.
+**Pipeline de build**: `vite build` → `vite build --ssr src/entry-server.tsx --outDir dist-ssr` → `node scripts/prerender.mjs` (gera `dist/informacoes/<slug>/index.html` com head único) → `tsx scripts/generate-sitemap.tsx`.
+
+**SEO por página**: title/description/canonical/OG/twitter:card únicos via `react-helmet-async`, hero renderizado como `<img>` real (não CSS background) com `alt` único, `FAQPage` JSON-LD a partir do próprio array `faq`. `public/robots.txt` aponta pro `sitemap.xml`.
+
+### Decisões tomadas
+
+- **Teto de páginas**: 60 combinado (estado+capital), checar `landingPages.length` antes de adicionar `NicheTemplate` novo. Atual: 40 (20+20), ver `list.md`.
+- **Bloco parceiro (Codexy)**: só São Paulo e Rio de Janeiro nível-estado, piloto. Nenhuma página de capital tem — decisão explícita de não escalar o link ainda (risco de padrão de link scheme se repetido em dezenas de páginas quase-clones).
+- **Risco de canibalização**: São Paulo, Rio de Janeiro e Brasília têm capital com nome igual (ou quase, no caso de Brasília/DF) ao estado — página de capital usa ângulo hiperlocal (bairros) pra diferenciar, mas são os 3 pares a observar no Search Console se uma passar a competir com a outra pela mesma busca.
+- **Imagens**: só 7 dos 20 estados têm hero image própria gerada (ver `docs/image-generation-brief.md`); os outros 13 estados e as 20 capitais caem no fallback gradiente até imagem própria ser gerada.
 
 ### Guardrails
 
-- Nunca editar entradas de `landingPages` à mão — só via `NicheTemplate` + `StateInfo`.
-- Novo nicho = 1 tarefa de conteúdo (o template), não N tarefas por estado.
-- Antes de cada deploy: `npm run build` local, checar `dist/informacoes/<slug>/index.html` tem title/OG únicos, `sitemap.xml` completo.
+- Nunca editar `landingPages` à mão — só via `NicheTemplate` + `StateInfo`/`CityInfo`.
+- Novo nicho = 1 tarefa de conteúdo (o template com par state*/city*), não N tarefas por local.
+- Antes de cada deploy: `npm run build` local, checar `dist/informacoes/<slug>/index.html` tem title/OG únicos, `sitemap.xml` completo, testar 2-3 URLs em produção depois do upload.

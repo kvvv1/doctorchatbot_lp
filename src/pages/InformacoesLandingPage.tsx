@@ -2,7 +2,6 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { CheckCircle2, AlertCircle, MessageCircle, ExternalLink } from 'lucide-react';
 import { getLandingPageBySlug } from '../data/landingPages';
-import { waLink } from '../utils/whatsapp';
 import InformacoesNavbar from '../components/landing/InformacoesNavbar';
 import Footer from '../components/Footer';
 import NotFound from './NotFound';
@@ -17,6 +16,17 @@ const InformacoesLandingPage = () => {
 
   const canonical = `${SITE_URL}/informacoes/${page.slug}`;
   const waHref = `https://wa.me/5531991666106?text=${encodeURIComponent(page.whatsappMessage)}`;
+  const ogImage = page.heroImage ? `${SITE_URL}${page.heroImage}` : `${SITE_URL}/og-image.png`;
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: page.faq.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+    })),
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -28,32 +38,37 @@ const InformacoesLandingPage = () => {
         <meta property="og:title" content={page.seo.title} />
         <meta property="og:description" content={page.seo.description} />
         <meta property="og:url" content={canonical} />
-        {page.heroImage && <meta property="og:image" content={`${SITE_URL}${page.heroImage}`} />}
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:locale" content="pt_BR" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={page.seo.title} />
+        <meta name="twitter:description" content={page.seo.description} />
+        <meta name="twitter:image" content={ogImage} />
         <meta name="robots" content="index,follow" />
+        <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
       </Helmet>
 
       <InformacoesNavbar />
 
       <main>
         {/* Hero */}
-        <section
-          className="relative bg-slate-900 text-white"
-          style={
-            page.heroImage
-              ? {
-                  backgroundImage: `linear-gradient(to bottom, rgba(15,23,42,0.75), rgba(15,23,42,0.9)), url(${page.heroImage})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }
-              : undefined
-          }
-        >
-          {!page.heroImage && (
+        <section className="relative bg-slate-900 text-white overflow-hidden">
+          {page.heroImage ? (
+            <>
+              <img
+                src={page.heroImage}
+                alt={page.heroImageAlt}
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="eager"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-900/75 to-slate-900/90" />
+            </>
+          ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900" />
           )}
           <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
             <span className="inline-block bg-sky-500/20 border border-sky-400/40 text-sky-300 text-xs font-semibold tracking-wide uppercase px-3 py-1 rounded-full mb-5">
-              {page.niche} · {page.stateUf}
+              {page.niche} · {page.badge}
             </span>
             <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-4">{page.headline}</h1>
             <p className="text-slate-300 text-lg max-w-2xl mx-auto mb-8">{page.subheadline}</p>
@@ -78,7 +93,7 @@ const InformacoesLandingPage = () => {
         <section className="bg-slate-50 py-14">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">
-              O que trava a agenda de clínicas médicas {page.stateIn}
+              O que trava a agenda de clínicas médicas {page.locationIn}
             </h2>
             <div className="grid md:grid-cols-3 gap-6">
               {page.painPoints.map((item) => (
@@ -146,7 +161,7 @@ const InformacoesLandingPage = () => {
         {/* CTA final */}
         <section className="py-16 text-center px-4">
           <h2 className="text-2xl font-bold text-slate-900 mb-4">
-            Pronto para automatizar a agenda da sua clínica {page.stateIn}?
+            Pronto para automatizar a agenda da sua clínica {page.locationIn}?
           </h2>
           <a
             href={waHref}
